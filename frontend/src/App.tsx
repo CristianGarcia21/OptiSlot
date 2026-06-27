@@ -8,64 +8,71 @@ interface Mensaje {
 
 function App() {
 
-const [mensajeInput, setMensajeInput] = useState("");
-const [mensajes, setMensajes] = useState<Mensaje[]>([]);
-const [error, setError] = useState<Error | null>(null)
+  const [mensajeInput, setMensajeInput] = useState("");
+  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault(); 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (!mensajeInput.trim()) return;
+    if (!mensajeInput.trim()) return;
 
-  try {
-    const respuesta = await fetch("http://localhost:8080/api/mensajes", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json", 
-      },
-      body: JSON.stringify({ contenido: mensajeInput }), 
-    });
-
-    if (respuesta.ok) {
-      const datoGuardado = await respuesta.json();
-      console.log("¡Dato guardado en Postgres mediante Rust!", datoGuardado);
-      setMensajeInput("")
-      setMensajes((prevMensajes) => [...prevMensajes, datoGuardado])
-      
-    } else {
-      console.error("Hubo un error en el servidor de Rust");
-    }
-  } catch (error) {
-    console.error("No se pudo conectar con el backend. ¿Está Axum encendido?", error);
-  }
-};
-
-useEffect(() => {
-  
-  const obtenerMensajes = async () => {
     try {
-      const respuesta = await fetch("http://localhost:8080/api/mensajes");
+      const respuesta = await fetch("http://localhost:8080/api/mensajes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ contenido: mensajeInput }),
+      });
+
       if (respuesta.ok) {
-        const datos = await respuesta.json(); 
-        setMensajes(datos)
+        const datoGuardado = await respuesta.json();
+        console.log("¡Dato guardado en Postgres mediante Rust!", datoGuardado);
+        setMensajeInput("")
+        setMensajes((prevMensajes) => [...prevMensajes, datoGuardado])
+
+      } else {
+        setError("Error al enviar el mensaje a Rust. Por favor, inténtalo de nuevo.");
       }
     } catch (error) {
-      console.error("Error al obtener los mensajes de Rust:", error);
+      setError("Error al enviar el mensaje a Rust. Por favor, inténtalo de nuevo.");
     }
   };
 
-  obtenerMensajes();
-}, []); 
+  useEffect(() => {
+
+    const obtenerMensajes = async () => {
+      try {
+        const respuesta = await fetch("http://localhost:8080/api/mensajes");
+        if (respuesta.ok) {
+          const datos = await respuesta.json();
+          setMensajes(datos)
+        } else {
+          setError("Error al obtener los mensajes de Rust. Por favor, inténtalo de nuevo.");
+        }
+      } catch (err) {
+        setError("Error de red: No se pudo conectar al servidor.");
+      }
+    };
+
+    obtenerMensajes();
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 text-slate-100 p-4">
       <div className="w-full max-w-md rounded-xl bg-slate-900 p-6 shadow-2xl border border-slate-800">
 
         <h1 className="text-2xl font-bold text-emerald-400 mb-6 text-center">
-          Sprint 0: Bala Trazadora 
+          Sprint 0: Bala Trazadora
         </h1>
 
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+            {error}
+          </div>
+        )}
         {/* Formulario */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
@@ -93,18 +100,18 @@ useEffect(() => {
         <div className="mt-8 border-t border-slate-800 pt-4">
           <h2 className="text-sm font-semibold text-slate-400 mb-3">Mensajes en la Base de Datos:</h2>
           <ul className="space-y-2">
-            {mensajes.length === 0 ? 
-            (<li className="text-xs text-slate-500 italic">Aún no hay datos de vuelta...</li>):
-            (mensajes.map((msg: any) => (
-              <li
-              key={msg.id}
-              className="rounded bg-slate-950 p-2 text-sm border border-slate-800 text-shadow-emerald-300">
-                {msg.contenido}
-              </li>
-            )))
-          }
+            {mensajes.length === 0 ?
+              (<li className="text-xs text-slate-500 italic">Aún no hay datos de vuelta...</li>) :
+              (mensajes.map((msg: any) => (
+                <li
+                  key={msg.id}
+                  className="rounded bg-slate-950 p-2 text-sm border border-slate-800 text-shadow-emerald-300">
+                  {msg.contenido}
+                </li>
+              )))
+            }
             {/* Aquí mapearemos la lista de mensajes más adelante */}
-            
+
           </ul>
         </div>
 
